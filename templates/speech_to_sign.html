@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speech to Text</title>
+
+  <style>
+    /* Color Theme */
+    :root {
+      --primary-color: #4db6ac;
+      --accent-color: #1e7e6b;
+      --text-color: #d1d1d1;
+      --bg-color: #000000;
+      --transparent-bg: rgba(28, 28, 28, 0.7);
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Navbar */
+    nav {
+      background-color: var(--transparent-bg);
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    nav ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    nav ul li {
+      margin-left: 20px;
+    }
+
+    nav ul li a {
+      color: var(--accent-color);
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: bold;
+      transition: color 0.3s ease-in-out;
+    }
+
+    nav ul li a:hover {
+      color: var(--text-color);
+    }
+
+    /* Main Container */
+    .container {
+      text-align: center;
+      background-color: var(--transparent-bg);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      max-width: 600px;
+      margin: 80px auto;
+    }
+
+    h1 {
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: var(--text-color);
+    }
+
+    .controls button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      transition: background-color 0.3s ease;
+    }
+
+    .controls button:hover {
+      background-color: var(--accent-color);
+    }
+
+    .output h2 {
+      color: var(--primary-color);
+      margin-top: 20px;
+    }
+
+    .output p {
+      font-size: 1.3rem;
+      margin-top: 10px;
+      color: #fff;
+      min-height: 50px;
+    }
+
+    .translate-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .translate-btn:hover {
+      background-color: #2aa689;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/sign_to_text">Sign to Text</a></li>
+      <li><a href="/speech_to_text">Speech to Text</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container">
+    <h1>Speech to Text Translation</h1>
+    <p>Convert speech into text by speaking into the microphone.</p>
+
+    <div class="controls">
+      <button id="startSpeech">Start Speech Recognition</button>
+      <button id="stopSpeech">Stop Speech Recognition</button>
+    </div>
+
+    <div class="output">
+      <h2>Recognized Speech:</h2>
+      <p id="speechOutput">🎤 Waiting for input...</p>
+
+      <button class="translate-btn" id="translateBtn">🌐 Translate Text</button>
+      <p id="translatedOutput"></p>
+    </div>
+  </div>
+
+  <script>
+    let recognition;
+    const speechOutput = document.getElementById("speechOutput");
+    const translatedOutput = document.getElementById("translatedOutput");
+
+    // Check if browser supports Web Speech API
+    if ("webkitSpeechRecognition" in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onresult = function (event) {
+        let text = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          text += event.results[i][0].transcript;
+        }
+        speechOutput.textContent = text;
+      };
+
+      document.getElementById("startSpeech").onclick = () => {
+        recognition.start();
+        speechOutput.textContent = "🎙️ Listening...";
+        translatedOutput.textContent = "";
+      };
+
+      document.getElementById("stopSpeech").onclick = () => {
+        recognition.stop();
+        speechOutput.textContent = "🛑 Stopped Listening.";
+      };
+    } else {
+      speechOutput.textContent =
+        "⚠️ Speech Recognition not supported in this browser.";
+    }
+
+    // Basic example for fake translation (you can connect real API later)
+    document.getElementById("translateBtn").onclick = async () => {
+      const text = speechOutput.textContent;
+      if (!text || text.includes("Waiting") || text.includes("Listening")) {
+        translatedOutput.textContent = "⚠️ No text to translate.";
+        return;
+      }
+
+      // Optional: call a Flask route or API here for real translation
+      translatedOutput.textContent = "🈯 Translated (example): " + text.toUpperCase();
+    };
+  </script>
+</body>
+</html>

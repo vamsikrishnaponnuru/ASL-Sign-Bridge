@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIGN BRIDGE</title>
+  <!-- TF.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <!-- MediaPipe Hands + utils + camera -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js"></script>
+  <style>
+    :root{
+      --bg:#ffffff; --ink:#111827; --muted:#6b7280; --blue:#2563eb; --blue-600:#1d4ed8; --line:#e5e7eb;
+      --good:#10b981; --warn:#f59e0b; --bad:#ef4444; --card:#f9fafb;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter,Arial}
+    header{padding:20px 16px;border-bottom:1px solid var(--line);text-align:center}
+    h1{margin:0;font-size:34px;font-weight:800;letter-spacing:.4px}
+    main{max-width:980px;margin:0 auto;padding:18px 16px}
+
+    /* Camera area */
+    .cam-wrap{position:relative;margin:0 auto; width:480px; max-width:90vw;}
+    .square{position:relative;width:100%;}
+    .square:before{content:"";display:block;padding-top:100%;}
+    #cameraBox{position:absolute;inset:0;border:1px solid var(--line);border-radius:14px;background:#fafafa;overflow:hidden}
+    video, canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    #overlay{pointer-events:none}
+
+    /* Placeholder */
+    .placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted);}
+    .placeholder button{background:var(--blue);border:0;color:#fff;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    .placeholder button:hover{background:var(--blue-600)}
+
+    /* Status chip (top-right) */
+    .status{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.9);backdrop-filter:saturate(1.2) blur(6px);
+      border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:14px;align-items:center;font-size:12px;color:#374151}
+    .status b{font-variant-numeric:tabular-nums}
+    .toggle{display:flex;align-items:center;gap:6px}
+
+    /* Output row */
+    .out{margin:14px auto 0;width:480px;max-width:90vw}
+    .labelRow{display:flex;align-items:end;gap:12px}
+    .labelRow label{font-weight:700}
+    .letter{font-size:56px;font-weight:800;min-width:2ch;text-align:left}
+
+    /* Confidence bar */
+    .confWrap{margin-top:8px;display:flex;align-items:center;gap:10px}
+    .bar{height:12px;border-radius:999px;background:#e5e7eb;overflow:hidden;flex:1}
+    .bar>i{display:block;height:100%;width:0;transition:width .15s}
+    .pct{width:3.5ch;text-align:right;font-variant-numeric:tabular-nums}
+
+    /* Actions & textarea */
+    .actions{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+    button.btn{background:var(--blue);border:0;color:white;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    button.btn:hover{background:var(--blue-600)}
+    .ghost{background:#F3F4F6;color:#111827;border:1px solid var(--line)}
+    textarea{width:100%;min-height:110px;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;resize:vertical}
+
+    /* Settings */
+    .settings{margin:18px auto 0;width:480px;max-width:90vw;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field input[type=range]{width:100%}
+    select, input[type=checkbox]{accent-color:var(--blue)}
+
+    /* Footer */
+    footer{max-width:980px;margin:18px auto;padding:0 16px;color:var(--muted);font-size:13px}
+    footer a{color:var(--blue);text-decoration:none;font-weight:600}
+
+    /* Modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px}
+    .modal.open{display:flex}
+    .modal .card{background:#fff;color:#111827;max-width:860px;width:100%;border-radius:14px;border:1px solid var(--line);padding:16px}
+    .modal header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:6px 4px 12px;margin:-16px -16px 12px}
+    .modal h2{font-size:20px;margin:0;padding-left:16px}
+    .close{background:#F3F4F6;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-weight:700;cursor:pointer}
+    .diagram{border:1px dashed #d1d5db;border-radius:10px;padding:10px;background:#fafafa}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;background:#f3f4f6;border:1px solid #e5e7eb;padding:1px 6px;border-radius:6px}
+
+    @media (max-width:560px){
+      .grid{grid-template-columns:1fr}
+      .status{gap:8px}
+      .letter{font-size:44px}
+
+        /* Dark Theme Color Scheme */
+        :root {
+            --primary-color: #4db6ac; /* Teal green */
+            --accent-color: #1e7e6b; /* Darker teal */
+            --text-color: #d1d1d1; /* Light gray for main text */
+            --bg-color: #000000; /* Black background */
+            --transparent-bg: rgba(28, 28, 28, 0.7); /* Semi-transparent dark background */
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 aria-label="App title">SIGN BRIDGE</h1>
+  </header>
+  <main>
+    <div class="cam-wrap" aria-live="polite">
+      <div class="square">
+        <div id="cameraBox" role="region" aria-label="Camera preview and hand overlay">
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div id="placeholder" class="placeholder" hidden>
+            <div>Camera is not available. Grant permission and retry.</div>
+            <button id="retryBtn" class="btn" aria-label="Retry camera">Retry Camera</button>
+          </div>
+          <div class="status" aria-label="Live status">
+            <span>FPS: <b id="fps">0</b></span>
+            <span>Latency: <b id="lat">0</b> ms</span>
+            <span>Hand: <b id="handed">—</b></span>
+            <label class="toggle" title="Toggle overlay">
+              <input id="toggleOverlay" type="checkbox" checked aria-label="Toggle landmark overlay" />
+              <span>Overlay</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="out" aria-label="Detected output">
+      <div class="labelRow">
+        <label for="letter">Detected Sign :</label>
+        <div id="letter" class="letter" aria-live="assertive">—</div>
+      </div>
+      <div class="confWrap">
+        <div class="bar" aria-hidden="true"><i id="confFill"></i></div>
+        <div class="pct" id="confPct" aria-label="Confidence percent">0%</div>
+      </div>
+      <div class="actions">
+        <button id="appendBtn" class="btn" aria-label="Append to text (shortcut A)">Append to text</button>
+        <button id="copyBtn" class="btn ghost" aria-label="Copy to clipboard (shortcut C)">Copy to clipboard</button>
+        <button id="clearBtn" class="btn ghost" aria-label="Clear text (shortcut X)">Clear</button>
+      </div>
+      <textarea id="outText" aria-label="Accumulated text output" placeholder="Your appended letters will appear here."></textarea>
+      <div style="color:var(--muted);font-size:12px;margin-top:6px">Shortcuts: <span class="kbd">A</span> append, <span class="kbd">C</span> copy, <span class="kbd">X</span> clear.</div>
+    </section>
+
+    <section class="settings" aria-label="Settings">
+      <h3 style="margin:6px 0 10px">Settings</h3>
+      <div class="grid">
+        <div class="field">
+          <label for="win">Stability window N: <b id="winVal">5</b></label>
+          <input id="win" type="range" min="3" max="7" step="1" value="5" aria-label="Stability window size" />
+        </div>
+        <div class="field">
+          <label for="thr">Confidence threshold: <b id="thrVal">0.75</b></label>
+          <input id="thr" type="range" min="0.5" max="0.95" step="0.01" value="0.75" aria-label="Confidence threshold" />
+        </div>
+        <div class="field">
+          <label for="handFilter">Handedness filter</label>
+          <select id="handFilter" aria-label="Handedness filter">
+            <option value="auto" selected>Auto (any)</option>
+            <option value="Right">Right only</option>
+            <option value="Left">Left only</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="modelPath">Model path</label>
+          <input id="modelPath" type="text" value="./models/isl_static_alphabet/model.json" aria-label="Model path" />
+        </div>
+      </div>
+      <div style="margin-top:8px;color:var(--muted);font-size:12px">Tip: Increase N and threshold to reduce flicker. Lower them for responsiveness.</div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Privacy: All processing runs locally in your browser (WebRTC + MediaPipe + TensorFlow.js). Your camera stream is <b>never uploaded</b>.
+      <a href="#" id="openModal" aria-label="Open model and metrics panel">Model & Metrics</a>
+    </p>
+  </footer>
+
+  <!-- Modal: Model & Metrics, Diagram and Dev Notes -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="card">
+      <header>
+        <h2 id="modalTitle">Model & Metrics</h2>
+        <button id="closeModal" class="close" aria-label="Close">×</button>
+      </header>
+      <section>
+        <h3>System Architecture</h3>
+        <div class="diagram" aria-label="Architecture diagram">
+          <!-- Lightweight SVG block diagram -->
+          <svg viewBox="0 0 900 220" width="100%" height="220" role="img" aria-label="Pipeline diagram">
+            <defs>
+              <style>
+                .b{fill:#fff;stroke:#cbd5e1;stroke-width:1.2}
+                .t{font:12px ui-sans-serif,system-ui,Segoe UI}
+              </style>
+              <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"/>
+              </marker>
+            </defs>
+            <!-- Boxes -->
+            <rect class="b" x="10"  y="40" width="120" height="60" rx="8"/>
+            <text class="t" x="70" y="75" text-anchor="middle">Webcam\n(getUserMedia)</text>
+
+            <rect class="b" x="160" y="40" width="180" height="60" rx="8"/>
+            <text class="t" x="250" y="65" text-anchor="middle">MediaPipe Hands</text>
+            <text class="t" x="250" y="83" text-anchor="middle">21 keypoints + handedness</text>
+
+            <rect class="b" x="360" y="30" width="180" height="80" rx="8"/>
+            <text class="t" x="450" y="60" text-anchor="middle">Preprocess</text>
+            <text class="t" x="450" y="78" text-anchor="middle">wrist→origin, scale by palm size</text>
+
+            <rect class="b" x="560" y="30" width="160" height="80" rx="8"/>
+            <text class="t" x="640" y="60" text-anchor="middle">TF.js MLP</text>
+            <text class="t" x="640" y="78" text-anchor="middle">26-way softmax (A–Z)</text>
+
+            <rect class="b" x="740" y="30" width="150" height="80" rx="8"/>
+            <text class="t" x="815" y="60" text-anchor="middle">Post-process</text>
+            <text class="t" x="815" y="78" text-anchor="middle">majority N & ≥ threshold</text>
+
+            <rect class="b" x="300" y="130" width="380" height="60" rx="8"/>
+            <text class="t" x="490" y="165" text-anchor="middle">UI: Camera • Letter • Confidence • Text area</text>
+
+            <!-- Arrows -->
+            <line x1="130" y1="70" x2="160" y2="70" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrow)"/>
+            <line x1="340" y1="70" x2="360" y2="70" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrow)"/>
+            <line x1="540" y1="70" x2="560" y2="70" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrow)"/>
+            <line x1="720" y1="70" x2="740" y2="70" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrow)"/>
+            <line x1="640" y1="110" x2="640" y2="130" stroke="#9ca3af" stroke-width="2" marker-end="url(#arrow)"/>
+          </svg>
+        </div>
+
+        <h3 style="margin-top:14px">Developer Notes</h3>
+        <ul>
+          <li><b>MediaPipe Hands</b>: BlazePalm + landmark regression yields 21 keypoints (x,y,z) and handedness. Tunables: <code>minDetectionConfidence=0.6</code>, <code>minTrackingConfidence=0.6</code>, <code>modelComplexity=1</code>.</li>
+          <li><b>Landmark vector</b>: Flatten to 63-D after normalization. Normalization = translate so wrist (id 0) is origin, scale by palm size = distance(wrist, middle MCP id 9).</li>
+          <li><b>Classifier</b>: TF.js MLP: Input[63] → Dense(128, ReLU) → Dense(64, ReLU) → Dense(26, Softmax). Load from <code id="modelPathNote">./models/isl_static_alphabet/model.json</code>. If unavailable, a <i>stub</i> random classifier runs so UI is testable.</li>
+          <li><b>Post‑processing</b>: Sliding window majority vote of last N (default <b>N=5</b>) + current softmax ≥ <b>0.75</b> to emit stable letter.</li>
+          <li><b>Performance</b>: Aims 15–30+ FPS. We show rolling FPS and per‑frame latency. Use the overlay toggle to reduce draw overhead.</li>
+          <li><b>Evaluation</b>: Record overall & per-letter accuracy, confusion matrix, avg/95th percentile latency, FPS. See metrics section below.</li>
+        </ul>
+
+        <details open>
+          <summary><b>Metrics Guide</b></summary>
+          <p>
+            With labeled test samples, compute accuracy = correct/total. For per-letter accuracy, sum per class. Build a confusion matrix
+            <code>cm[true][pred] += 1</code>. Normalize rows to percentages for a heatmap. Latency is measured as time from frame capture to model output. FPS from rolling average of frame times.
+          </p>
+          <ul>
+            <li>Overall accuracy: <span id="metric-acc">—</span></li>
+            <li>Per-letter accuracy: (provide table from your eval script)</li>
+            <li>Confusion matrix: suggest heatmap (not computed live here)</li>
+            <li>Average latency: shows in status; record 95th percentile offline</li>
+            <li>FPS: shows in status</li>
+          </ul>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    // ---------------------- Constants & State ----------------------
+    const LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const els = {
+      video: document.getElementById('video'),
+      canvas: document.getElementById('overlay'),
+      placeholder: document.getElementById('placeholder'),
+      retryBtn: document.getElementById('retryBtn'),
+      fps: document.getElementById('fps'),
+      lat: document.getElementById('lat'),
+      handed: document.getElementById('handed'),
+      toggleOverlay: document.getElementById('toggleOverlay'),
+      letter: document.getElementById('letter'),
+      confFill: document.getElementById('confFill'),
+      confPct: document.getElementById('confPct'),
+      appendBtn: document.getElementById('appendBtn'),
+      copyBtn: document.getElementById('copyBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      outText: document.getElementById('outText'),
+      win: document.getElementById('win'),
+      thr: document.getElementById('thr'),
+      winVal: document.getElementById('winVal'),
+      thrVal: document.getElementById('thrVal'),
+      handFilter: document.getElementById('handFilter'),
+      modelPath: document.getElementById('modelPath'),
+      openModal: document.getElementById('openModal'),
+      modal: document.getElementById('modal'),
+      closeModal: document.getElementById('closeModal'),
+      modelPathNote: document.getElementById('modelPathNote'),
+    };
+
+    const ctx = els.canvas.getContext('2d');
+    let hands = null, camera = null, model = null, useStub = false;
+
+    // Sliding window & perf
+    let WINDOW = parseInt(els.win.value, 10); // N
+    let THRESH = parseFloat(els.thr.value);
+    let lastPreds = []; // letters
+    let frameTimes = []; // timestamps for FPS
+
+    // Local storage for textarea
+    els.outText.value = localStorage.getItem('sb_text') || '';
+    const saveText = () => localStorage.setItem('sb_text', els.outText.value);
+
+    // ---------------------- UI helpers ----------------------
+    function setConfidence(p){
+      const pct = Math.max(0, Math.min(1, p));
+      els.confFill.style.width = (pct*100).toFixed(1) + '%';
+      let color = pct < 0.5 ? 'var(--bad)' : pct < 0.75 ? 'var(--warn)' : 'var(--good)';
+      els.confFill.style.background = color;
+      els.confPct.textContent = Math.round(pct*100) + '%';
+    }
+
+    function majorityVote(buffer){
+      const counts = new Map();
+      for(const v of buffer){ counts.set(v,(counts.get(v)||0)+1); }
+      let best=null, c=-1; for(const [k,v] of counts){ if(v>c){ c=v; best=k; } }
+      return [best, c];
+    }
+
+    function drawOverlay(res){
+      const { multiHandLandmarks = [] } = res;
+      const w = els.canvas.width, h = els.canvas.height;
+      ctx.clearRect(0,0,w,h);
+      if(!els.toggleOverlay.checked || !multiHandLandmarks.length) return;
+      // Use MediaPipe drawing utils if present
+      if(window.drawConnectors && window.drawLandmarks && window.HAND_CONNECTIONS){
+        for(const lms of multiHandLandmarks){
+          drawConnectors(ctx, lms, HAND_CONNECTIONS, {color:'#60a5fa', lineWidth:2});
+          drawLandmarks(ctx, lms, {color:'#1d4ed8', lineWidth:1, radius:3});
+        }
+      } else {
+        // Minimal dots fallback
+        ctx.fillStyle = '#2563eb';
+        for(const lms of multiHandLandmarks){
+          for(const p of lms){ ctx.fillRect(p.x*w-2, p.y*h-2, 4, 4); }
+        }
+      }
+    }
+
+    function normalizeLandmarks(lms){
+      // lms: array of {x,y,z} normalized to [0,1]
+      const wrist = lms[0];
+      const centered = lms.map(p => [p.x - wrist.x, p.y - wrist.y, (p.z ?? 0) - (wrist.z ?? 0)]);
+      const ref = Math.hypot(centered[9][0], centered[9][1]) || 1e-6; // wrist -> middle MCP
+      const scaled = centered.map(([x,y,z]) => [x/ref, y/ref, z/ref]);
+      return scaled.flat(); // 63
+    }
+
+    function top1(arr){ let i=0,b=arr[0]; for(let k=1;k<arr.length;k++){ if(arr[k]>b){ b=arr[k]; i=k; } } return [i,b]; }
+
+    async function predictLetter(landmarks){
+      if(useStub || !model){
+        // Graceful fallback: random-ish probs biased towards previous letter to show stability behavior
+        const idx = Math.floor(Math.random()*26);
+        const conf = 0.4 + Math.random()*0.4; // 0.4–0.8
+        return { letter: LABELS[idx], conf };
+      }
+      const feat = normalizeLandmarks(landmarks);
+      const t = tf.tensor2d([feat], [1, 63]);
+      const logits = model.predict(t);
+      const data = await logits.data();
+      t.dispose(); logits.dispose();
+      const [bestI, bestP] = top1(data);
+      return { letter: LABELS[bestI], conf: bestP };
+    }
+
+    function handlePrediction(p, handedness){
+      if(!p) return;
+      setConfidence(p.conf);
+      // Handedness filter
+      const filter = els.handFilter.value;
+      const currentHand = handedness?.[0]?.label || 'Unknown';
+      els.handed.textContent = currentHand || '—';
+      if(filter !== 'auto' && currentHand !== filter){
+        // Do not update window if the hand doesn't match filter
+        return;
+      }
+      // Sliding window stability
+      lastPreds.push(p.letter);
+      if(lastPreds.length > WINDOW) lastPreds.shift();
+      const [stable, count] = majorityVote(lastPreds);
+      const strong = count >= Math.ceil(WINDOW*0.57);
+      if(strong && p.conf >= THRESH){
+        els.letter.textContent = stable;
+        els.appendBtn.disabled = false;
+      } else {
+        els.appendBtn.disabled = true;
+      }
+    }
+
+    function updatePerf(startTs){
+      const now = performance.now();
+      const latency = now - startTs;
+      els.lat.textContent = latency.toFixed(0);
+      // FPS calc from frame times
+      frameTimes.push(now);
+      while(frameTimes.length && now - frameTimes[0] > 1000) frameTimes.shift();
+      els.fps.textContent = frameTimes.length.toString();
+    }
+
+    function resizeCanvas(){
+      const rect = els.video.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      els.canvas.width = rect.width * dpr;
+      els.canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+
+    // ---------------------- Camera & MediaPipe ----------------------
+    async function initCamera(){
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 480, height: 480, facingMode: 'user' }, audio:false
+        });
+        els.video.srcObject = stream;
+        els.placeholder.hidden = true;
+      }catch(err){
+        console.warn('Camera failed:', err);
+        els.placeholder.hidden = false;
+        throw err;
+      }
+    }
+
+    async function initHands(){
+      hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${f}` });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+      });
+
+      hands.onResults(async (res) => {
+        const start = performance.now();
+        drawOverlay(res);
+        if(res.multiHandLandmarks && res.multiHandLandmarks.length){
+          const lms = res.multiHandLandmarks[0];
+          const pred = await predictLetter(lms);
+          handlePrediction(pred, res.multiHandedness);
+        } else {
+          setConfidence(0);
+          els.handed.textContent = '—';
+          els.appendBtn.disabled = true;
+        }
+        updatePerf(start);
+      });
+
+      // Use MediaPipe camera helper to drive frames
+      camera = new Camera(els.video, {
+        onFrame: async () => { await hands.send({ image: els.video }); },
+        width: 480, height: 480
+      });
+      camera.start();
+      els.video.addEventListener('loadedmetadata', resizeCanvas);
+      window.addEventListener('resize', resizeCanvas);
+    }
+
+    async function loadModel(path){
+      try{
+        useStub = false;
+        model = await tf.loadLayersModel(path);
+        els.modelPathNote.textContent = path;
+      } catch (e){
+        console.warn('Model load failed; falling back to stub:', e);
+        useStub = true; model = null;
+      }
+    }
+
+    // ---------------------- Events & Handlers ----------------------
+    els.win.addEventListener('input', () => { WINDOW = parseInt(els.win.value,10); els.winVal.textContent = WINDOW; lastPreds.length = 0; });
+    els.thr.addEventListener('input', () => { THRESH = parseFloat(els.thr.value); els.thrVal.textContent = THRESH.toFixed(2); });
+    els.modelPath.addEventListener('change', () => { loadModel(els.modelPath.value); });
+    els.retryBtn.addEventListener('click', () => initCamera().catch(()=>{}));
+
+    els.appendBtn.addEventListener('click', () => { const ch = els.letter.textContent.trim(); if(ch && ch !== '—'){ els.outText.value += ch; saveText(); } });
+    els.copyBtn.addEventListener('click', async () => { try{ await navigator.clipboard.writeText(els.outText.value); }catch(e){ alert('Copy failed'); } });
+    els.clearBtn.addEventListener('click', () => { els.outText.value = ''; saveText(); });
+    els.outText.addEventListener('input', saveText);
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if(e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if(e.key === 'a' || e.key === 'A') els.appendBtn.click();
+      if(e.key === 'c' || e.key === 'C') els.copyBtn.click();
+      if(e.key === 'x' || e.key === 'X') els.clearBtn.click();
+    });
+
+    // Modal
+    els.openModal.addEventListener('click', (e) => { e.preventDefault(); els.modal.classList.add('open'); });
+    els.closeModal.addEventListener('click', () => els.modal.classList.remove('open'));
+    els.modal.addEventListener('click', (e) => { if(e.target === els.modal) els.modal.classList.remove('open'); });
+
+    // ---------------------- Boot ----------------------
+    (async function start(){
+      await initCamera().catch(()=>{});
+      await loadModel(els.modelPath.value);
+      await initHands();
+    })();
+  </script>
+</body>
+</html>

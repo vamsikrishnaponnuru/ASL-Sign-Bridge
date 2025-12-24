@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIGN BRIDGE – Sign to Text</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0d0d0d;
+      color: #00c7a7;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 40px;
+      border-bottom: 1px solid #00c7a7;
+    }
+    header a {
+      color: #00c7a7;
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 30px;
+    }
+    header a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 40px;
+      text-align: center;
+    }
+    img {
+      width: 640px;
+      height: 480px;
+      border: 2px solid #00c7a7;
+      border-radius: 12px;
+      background: #000;
+    }
+    h2 {
+      color: #00c7a7;
+      margin-top: 25px;
+    }
+    .output-box {
+      margin-top: 20px;
+      padding: 10px 20px;
+      border: 1px solid #00c7a7;
+      border-radius: 10px;
+      min-width: 300px;
+      min-height: 60px;
+      color: #00c7a7;
+      font-size: 22px;
+      background: #111;
+    }
+    .btns {
+      margin-top: 25px;
+    }
+    button {
+      background: #00c7a7;
+      color: #000;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      margin: 0 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #00e6c0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="font-size:20px;font-weight:700;">SIGN BRIDGE</div>
+    <nav>
+      <a href="/">HOME</a>
+      <a href="/sign_to_text">SIGN TO TEXT</a>
+      <a href="/speech_to_text">SPEECH TO TEXT</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h2>Sign to Text Conversion</h2>
+    <img id="videoFeed" src="{{ url_for('video_feed_sign_to_text') }}" alt="Camera Feed" />
+
+    <div class="output-box" id="outputText">Detected Text Will Appear Here</div>
+
+    <div class="btns">
+      <button onclick="clearText()">Clear</button>
+      <button onclick="speakText()">Speak Output</button>
+    </div>
+  </div>
+
+  <script>
+    // Clear recognized sentence
+    function clearText() {
+      fetch('/clear_text');
+      document.getElementById('outputText').textContent = 'Detected Text Will Appear Here';
+    }
+
+    // Periodically get text from backend
+    setInterval(async () => {
+      const res = await fetch('/get_text');
+      const data = await res.json();
+      document.getElementById('outputText').textContent = data.text || '...';
+    }, 1000);
+
+    // Speak recognized text
+    function speakText() {
+      const txt = document.getElementById('outputText').textContent;
+      if (!txt || txt === 'Detected Text Will Appear Here') return;
+
+      const synth = window.speechSynthesis;
+      const utter = new SpeechSynthesisUtterance(txt);
+      utter.lang = 'en-US';
+      synth.speak(utter);
+    }
+
+    // ✅ Stop camera when user leaves the page
+    window.addEventListener('beforeunload', () => {
+      fetch('/stop_camera', { method: 'POST' });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+from tensorflow.keras.models import load_model
+
+# Load your model
+model = load_model("model/sign_language_main_1.h5")
+
+# Print summary
+model.summary()
+
+# Print key info
+print("\n✅ Model input shape:", model.input_shape)
+print("✅ Model output shape:", model.output_shape)
+

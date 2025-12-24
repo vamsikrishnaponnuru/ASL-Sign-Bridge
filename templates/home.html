@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGN BRIDGE</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- Animate.css for animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    
+    <style>
+        /* Dark Theme Color Scheme */
+        :root {
+            --primary-color: #4db6ac; /* Teal green */
+            --accent-color: #1e7e6b; /* Darker teal */
+            --text-color: #d1d1d1; /* Light gray for main text */
+            --bg-color: #000000; /* Black background */
+            --transparent-bg: rgba(28, 28, 28, 0.7); /* Semi-transparent dark background */
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--transparent-bg);
+            padding: 1rem;
+            border-bottom: 1px solid var(--accent-color);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar .navbar-brand,
+        .navbar .navbar-nav .nav-link {
+            color: #1e7e6b; /* Dark teal text color for links and brand */
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: color 0.3s ease-in-out;
+            text-transform: uppercase;
+        }
+
+        .navbar .navbar-nav .nav-link:hover {
+            color: var(--text-color); /* Light color on hover */
+        }
+
+        .navbar-brand img {
+            max-height: 40px;
+            width: auto;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        /* Hero Section */
+        .hero {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 100px;
+            background-color: var(--transparent-bg);
+            border-bottom: 2px solid var(--accent-color);
+        }
+        .hero-text {
+            flex: 1;
+            padding: 20px;
+            text-align: left;
+        }
+        .hero-text h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .hero-text p {
+            font-size: 1.2rem;
+            color: var(--text-color);
+            margin-top: 10px;
+        }
+        .hero-image {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+        }
+        .hero-image img {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Features Section */
+        .features-section {
+            text-align: center;
+            padding: 4rem 1rem;
+            background: var(--transparent-bg); /* Make Features Section Transparent */
+            /* Removed border-top */
+        }
+        .features-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        .feature {
+            padding: 1.5rem;
+            color: var(--text-color);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .feature i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        .feature h5 {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-top: 1rem;
+        }
+        .feature p {
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: var(--transparent-bg);
+            color: var(--text-color);
+            padding: 2rem 0;
+            text-align: center;
+            border-top: 1px solid var(--accent-color);
+        }
+        .footer h5 {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .footer .social-icons a {
+            color: var(--primary-color); /* Updated to green color */
+            margin: 0 10px;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+        .footer .social-icons a:hover {
+            color: var(--text-color);
+        }
+        .footer p {
+            font-size: 0.9rem;
+        }
+        
+        /* Team Members in Footer */
+        .team-members {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        .team-card {
+            background-color: rgba(255, 255, 255, 0.1); /* Transparent background */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            width: 150px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .team-card img {
+             width: 80px; 
+            height: 80px;  
+            border-radius: 50%;
+            object-fit: cover; 
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            
+}
+        }
+        .team-card h6 {
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+        }
+        .team-card p {
+            color: var(--text-color);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                SIGN BRIDGE
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}">Home</a></li>
+<li class="nav-item"><a class="nav-link" href="{{ url_for('sign_to_text') }}">Sign to Text</a></li>
+<li class="nav-item"><a class="nav-link" href="{{ url_for('speech_to_text') }}">Speech to Text</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Side-by-Side Image and Text -->
+    <div class="hero">
+        <div class="hero-text">
+            <h1>SIGN BRIDGE </h1>
+            <p>Bridging the communication gap between the deaf and hearing communities.</p>
+        </div>
+        <div class="hero-image">
+            <img src="{{ url_for('static', filename='img/body.jpg') }}" alt="Sign Language Communication Illustration">
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+        <h2>Features</h2>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 col-sm-6 col-12 feature">
+                    <i class="fas fa-sign-language"></i>
+                    <h5>Sign to Text Conversion</h5>
+                    <p>Translate sign language gestures into text for easier understanding and communication.</p>
+                </div>
+                <div class="col-md-4 col-sm-6 col-12 feature">
+                    <i class="fas fa-comments"></i>
+                    <h5>Speech to text Language</h5>
+                    <p>Convert spoken words into text language visuals, enabling communication with the hearing impaired.</p>
+                </div>
+                <div class="col-md-4 col-sm-6 col-12 feature">
+                    <i class="fas fa-user-friends"></i>
+                    <h5>User-Friendly Interface</h5>
+                    <p>An intuitive interface designed for easy accessibility and seamless interaction.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Section with Team Members -->
+    <div class="footer">
+        <div class="container">
+            <h5>Meet Our Team</h5>
+            <div class="team-members">
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='img/Vamsi.png') }}" alt="Vamsi Krishna Ponnuru">
+                    <h6>Vamsi Krishna Ponnuru</h6>
+                    <p>Project Manager</p>
+                </div>
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='img/Rupa.jpg') }}" alt="Mamidi Rupanjali">
+                    <h6>Mamidi Rupanjali</h6>
+                    <p>Lead Developer</p>
+                </div>
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='img/Abhinaya.jpg') }}" alt="Kurmapu Abhinaya">
+                    <h6>Kurmapu Abhinaya</h6>
+                    <p>Frontend Developer</p>
+                </div>
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='img/Bhuvana.jpg') }}" alt="Chukka Bhuvaneswari">
+                    <h6>Chukka Bhuvaneswari</h6>
+                    <p>UI/UX Designer</p>
+                </div>
+            </div>
+            <p>&copy; 2024 Sign Language Communication System | All Rights Reserved</p>
+            <div class="social-icons">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
